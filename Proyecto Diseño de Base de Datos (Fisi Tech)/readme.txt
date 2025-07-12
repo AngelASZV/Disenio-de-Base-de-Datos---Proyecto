@@ -6,11 +6,12 @@ Este repositorio contiene el entregable final del curso, desarrollado por el Gru
 
 ## Integrantes
 
-- [Nombre 1]
-- [Nombre 2]
-- [Nombre 3]
-- [Nombre 4]
-- [Nombre 5]
+- Asmat Zevallos, Angel Manuel
+- Chavez Huamaní, Julio Daniel
+- Chunga Chevez, Axel Josué
+- Medrano Garay, Adriano Jesús
+- Vilchez Salcedo, Fabian Emanuel
+- Yanac Espinoza, Nathaly Soledad
 
 ## Estructura del Repositorio
 
