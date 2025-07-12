@@ -1,0 +1,186 @@
+-- Procedimiento para generar exámenes aleatorios
+
+DELIMITER //
+
+CREATE PROCEDURE generar_examen_aleatorio(
+    IN p_user_id VARCHAR(10),
+    IN p_template_id VARCHAR(10),
+    OUT p_exam_id VARCHAR(10)
+)
+BEGIN
+    DECLARE v_num_easy, v_num_medium, v_num_hard INT;
+    DECLARE v_exam_id VARCHAR(10);
+    DECLARE v_attempt INT;
+    
+    -- Obtener configuración de la plantilla
+    SELECT num_easy_q, num_medium_q, num_hard_q 
+    INTO v_num_easy, v_num_medium, v_num_hard
+    FROM Template 
+    WHERE id_template = p_template_id;
+    
+    -- Determinar número de intento
+    SELECT IFNULL(MAX(attempt), 0) + 1 INTO v_attempt
+    FROM Exam
+    WHERE fk_user = p_user_id AND fk_template = p_template_id;
+    
+    -- Generar ID único para el examen
+    SET v_exam_id = CONCAT('EX', LPAD(FLOOR(1 + RAND() * 9999), 4, '0'));
+    
+    -- Crear el examen
+    INSERT INTO Exam (id_exam, fk_template, fk_user, application_date, attempt)
+    VALUES (v_exam_id, p_template_id, p_user_id, CURDATE(), v_attempt);
+    
+    -- Insertar preguntas aleatorias según dificultad 
+    INSERT INTO Answer (id_answer, fk_exam, fk_question, user_response, partial_score)
+    SELECT 
+        CONCAT('ANS', LPAD(FLOOR(RAND() * 100000), 5, '0')),
+        v_exam_id,
+        id_question,
+        '',
+        0
+    FROM (
+        (SELECT id_question FROM Question WHERE fk_difficulty = 'D1' ORDER BY RAND() LIMIT v_num_easy)
+        UNION ALL
+        (SELECT id_question FROM Question WHERE fk_difficulty = 'D2' ORDER BY RAND() LIMIT v_num_medium)
+        UNION ALL
+        (SELECT id_question FROM Question WHERE fk_difficulty = 'D3' ORDER BY RAND() LIMIT v_num_hard)
+    ) AS preguntas_aleatorias;
+    
+    SET p_exam_id = v_exam_id;
+END //
+
+DELIMITER ;
+
+-- Procedimiento para simular respuestas aleatorias
+
+DELIMITER //
+CREATE PROCEDURE simular_respuestas(IN p_exam_id VARCHAR(10))
+BEGIN
+    DECLARE v_question_id VARCHAR(10);
+    DECLARE v_correct_option VARCHAR(200);
+    DECLARE v_incorrect_option VARCHAR(200);
+    DECLARE v_is_correct BOOLEAN;
+    DECLARE done INT DEFAULT FALSE;
+    
+    DECLARE cur CURSOR FOR 
+        SELECT q.id_question, o.option_text 
+        FROM Question q 
+        JOIN Option_ o ON q.id_question = o.fk_question 
+        JOIN Answer a ON q.id_question = a.fk_question 
+        WHERE a.fk_exam = p_exam_id AND o.is_correct = TRUE;
+        
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    
+    OPEN cur;
+    read_loop: LOOP
+        FETCH cur INTO v_question_id, v_correct_option;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+        
+        -- Actualizar algunas respuestas como correctas (aleatoriamente)
+        SET v_is_correct = (RAND() > 0.3);  -- 70% de probabilidad de responder correctamente
+        
+        -- Si es incorrecta, seleccionar una opción incorrecta aleatoria
+        IF v_is_correct THEN
+            UPDATE Answer 
+            SET user_response = v_correct_option, 
+                partial_score = 1,
+                fk_feedback = 'F002'
+            WHERE fk_exam = p_exam_id AND fk_question = v_question_id;
+        ELSE
+            -- Seleccionar una opción incorrecta aleatoria para esta pregunta
+            SELECT option_text INTO v_incorrect_option
+            FROM Option_
+            WHERE fk_question = v_question_id AND is_correct = FALSE
+            ORDER BY RAND()
+            LIMIT 1;
+            
+            UPDATE Answer 
+            SET user_response = v_incorrect_option, 
+                partial_score = 0,
+                fk_feedback = 'F001'
+            WHERE fk_exam = p_exam_id AND fk_question = v_question_id;
+        END IF;
+    END LOOP;
+    CLOSE cur;
+    
+    -- Calcular resultado final con ID explícito
+    INSERT INTO Result(id_result, fk_exam, fk_achvlvl, total_score, percentage_correct)
+    SELECT 
+        CONCAT('RES_', p_exam_id),
+        p_exam_id,
+        CASE 
+            WHEN (SUM(a.partial_score) * 100.0 / COUNT(*)) = 100 THEN 'A4'
+            WHEN (SUM(a.partial_score) * 100.0 / COUNT(*)) >= 90 THEN 'A3'
+            WHEN (SUM(a.partial_score) * 100.0 / COUNT(*)) >= 70 THEN 'A2'
+            ELSE 'A1'
+        END,
+        SUM(a.partial_score),
+        (SUM(a.partial_score) * 100.0 / COUNT(*))
+    FROM Answer a
+    WHERE a.fk_exam = p_exam_id
+    ON DUPLICATE KEY UPDATE
+        fk_achvlvl = VALUES(fk_achvlvl),
+        total_score = VALUES(total_score),
+        percentage_correct = VALUES(percentage_correct);
+END //
+DELIMITER ;
+
+-- Calcular el resultado de una respuesta
+
+DELIMITER //
+
+CREATE PROCEDURE calcular_resultado(IN exam_id VARCHAR(10))
+BEGIN
+  DECLARE total_correctas INT DEFAULT 0;
+  DECLARE total_preguntas INT DEFAULT 0;
+  DECLARE porcentaje DECIMAL(5,2) DEFAULT 0;
+  DECLARE logro_id VARCHAR(15);
+  
+  -- Calcular respuestas correctas
+  SELECT IFNULL(SUM(partial_score), 0)
+  INTO total_correctas
+  FROM Answer
+  WHERE fk_exam = exam_id;
+  
+  -- Contar total preguntas en el examen
+  SELECT COUNT(*)
+  INTO total_preguntas
+  FROM Answer
+  WHERE fk_exam = exam_id;
+  
+  -- Calcular porcentaje
+  IF total_preguntas = 0 THEN
+    SET porcentaje = 0;
+  ELSE
+    SET porcentaje = (total_correctas * 100.0 / total_preguntas);
+  END IF;
+  
+  -- Determinar nivel de logro
+  IF porcentaje = 100 THEN
+    SET logro_id = 'A4';
+  ELSEIF porcentaje >= 90 THEN
+    SET logro_id = 'A3';
+  ELSEIF porcentaje >= 70 THEN
+    SET logro_id = 'A2';
+  ELSE
+    SET logro_id = 'A1';
+  END IF;
+  
+  -- Insertar o actualizar resultado
+  INSERT INTO Result(id_result, fk_exam, fk_achvlvl, total_score, percentage_correct)
+  VALUES (
+    CONCAT('RES_', exam_id),
+    exam_id,
+    logro_id,
+    total_correctas,
+    porcentaje
+  )
+  ON DUPLICATE KEY UPDATE
+    fk_achvlvl = logro_id,
+    total_score = total_correctas,
+    percentage_correct = porcentaje;
+END //
+
+DELIMITER ;

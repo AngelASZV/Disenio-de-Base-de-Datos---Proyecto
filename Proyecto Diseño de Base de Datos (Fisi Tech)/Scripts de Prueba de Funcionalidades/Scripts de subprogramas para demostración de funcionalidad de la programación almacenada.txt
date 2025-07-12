@@ -1,0 +1,46 @@
+-- Asignar preguntas aleatorias a los exámenes
+
+CALL generar_examen_aleatorio('U001', 'TP0001', @exam1);
+CALL generar_examen_aleatorio('U002', 'TP0003', @exam2);
+CALL generar_examen_aleatorio('U003', 'TP0002', @exam3);
+CALL generar_examen_aleatorio('U004', 'TP0001', @exam4);
+CALL generar_examen_aleatorio('U005', 'TP0002', @exam5);
+CALL generar_examen_aleatorio('U006', 'TP0003', @exam6);
+CALL generar_examen_aleatorio('U007', 'TP0001', @exam7);
+CALL generar_examen_aleatorio('U008', 'TP0003', @exam8);
+CALL generar_examen_aleatorio('U009', 'TP0002', @exam9);
+CALL generar_examen_aleatorio('U010', 'TP0001', @exam10);
+
+-- Simular respuestas para todos los exámenes generados
+CALL simular_respuestas(@exam1);
+CALL simular_respuestas(@exam2);
+CALL simular_respuestas(@exam3);
+CALL simular_respuestas(@exam4);
+CALL simular_respuestas(@exam5);
+CALL simular_respuestas(@exam6);
+CALL simular_respuestas(@exam7);
+CALL simular_respuestas(@exam8);
+CALL simular_respuestas(@exam9);
+CALL simular_respuestas(@exam10);
+
+-- Calcular resultados
+CALL calcular_resultado(@exam1);
+CALL calcular_resultado(@exam2);
+CALL calcular_resultado(@exam3);
+CALL calcular_resultado(@exam4);
+CALL calcular_resultado(@exam5);
+CALL calcular_resultado(@exam6);
+CALL calcular_resultado(@exam7);
+CALL calcular_resultado(@exam8);
+CALL calcular_resultado(@exam9);
+CALL calcular_resultado(@exam10);
+SELECT * FROM vw_usuarios_aprobados;
+SELECT * FROM vw_usuarios_desaprobados;
+SELECT * FROM vw_resumen_usuario;
+SELECT * FROM vw_examen_temas;
+SELECT * FROM vw_feedback_detallado;
+SELECT * FROM vw_preguntas_opciones_correctas;
+SELECT * FROM vw_resultado_por_nivel_educativo;
+SELECT * FROM Answer;
+SELECT * FROM Template;
+SELECT * FROM Result;
