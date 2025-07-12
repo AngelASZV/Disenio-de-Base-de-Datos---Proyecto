@@ -1,8 +1,7 @@
 # FISI TECH SOLUTIONS
 
-## Trabajo Final – Grupo 4
-
-Este repositorio contiene el entregable final del curso, desarrollado por el Grupo 4, bajo el nombre de consultora FISI TECH SOLUTIONS. Se ha empaquetado toda la información relevante del proyecto, incluyendo documentación técnica, scripts SQL, exportaciones de base de datos y archivos de la aplicación desarrollada.
+## Trabajo Final – Grupo 10
+Este repositorio contiene el entregable final del curso, desarrollado por el Grupo 10, bajo el nombre de consultora FISI TECH SOLUTIONS. Se ha empaquetado toda la información relevante del proyecto, incluyendo documentación técnica, scripts SQL, exportaciones de base de datos y archivos de la aplicación desarrollada.
 
 ## Integrantes
 
