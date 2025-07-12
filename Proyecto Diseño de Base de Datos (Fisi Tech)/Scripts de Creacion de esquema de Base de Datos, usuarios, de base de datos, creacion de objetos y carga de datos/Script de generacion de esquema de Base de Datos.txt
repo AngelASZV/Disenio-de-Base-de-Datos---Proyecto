@@ -1,0 +1,133 @@
+CREATE DATABASE proyecto_minam;
+USE proyecto_minam;
+
+-- 1. Temas ambientales
+CREATE TABLE Topic (
+  id_topic VARCHAR(10) PRIMARY KEY,
+  topic_name VARCHAR(30) NOT NULL,
+  description_t VARCHAR(100)
+);
+
+-- 2. Banco de preguntas
+CREATE TABLE Question_Bank (
+  id_questionbank VARCHAR(10) PRIMARY KEY,
+  fk_topic VARCHAR(10) NOT NULL,
+  qb_name VARCHAR(40) NOT NULL,
+  description_qb VARCHAR(100),
+  FOREIGN KEY (fk_topic) REFERENCES Topic(id_topic)
+);
+
+-- 3. Nivel de dificultad
+CREATE TABLE Difficulty_Level (
+  id_difficulty VARCHAR(10) PRIMARY KEY,
+  name_difficulty VARCHAR(30) NOT NULL,
+  description_dl VARCHAR(200)
+);
+
+-- 4. Nivel educativo
+CREATE TABLE Education_Level (
+  id_educationlevel VARCHAR(10) PRIMARY KEY,
+  name_educationlvl VARCHAR(30) NOT NULL,
+  description_el VARCHAR(200)
+);
+
+-- 5. Usuarios
+CREATE TABLE User_ (
+  id_user VARCHAR(10) PRIMARY KEY,
+  full_name VARCHAR(50) NOT NULL,
+  last_name VARCHAR(50) NOT NULL,
+  middle_name VARCHAR(20) NOT NULL,
+  email VARCHAR(50) NOT NULL UNIQUE,
+  password_u VARCHAR(100) NOT NULL,
+  fk_educationlevel VARCHAR(10) NOT NULL,
+  FOREIGN KEY (fk_educationlevel) REFERENCES Education_Level(id_educationlevel)
+);
+
+-- 6. Nivel de logro
+CREATE TABLE Achievement_lvl (
+  id_achvlvl VARCHAR(15) PRIMARY KEY,
+  name_a VARCHAR(30) NOT NULL,
+  description_a VARCHAR(200)
+);
+
+-- 7. Preguntas
+CREATE TABLE Question (
+  id_question VARCHAR(10) PRIMARY KEY,
+  fk_questionbank VARCHAR(10) NOT NULL,
+  fk_difficulty VARCHAR(10) NOT NULL,
+  fk_educationlevel VARCHAR(10) NOT NULL,
+  question_text VARCHAR(300) NOT NULL,
+  FOREIGN KEY (fk_questionbank) REFERENCES Question_Bank(id_questionbank),
+  FOREIGN KEY (fk_difficulty) REFERENCES Difficulty_Level(id_difficulty),
+  FOREIGN KEY (fk_educationlevel) REFERENCES Education_Level(id_educationlevel)
+);
+
+-- 8. Opciones por pregunta
+CREATE TABLE Option_ (
+  id_option INT AUTO_INCREMENT PRIMARY KEY,
+  fk_question VARCHAR(10) NOT NULL,
+  option_text VARCHAR(200) NOT NULL,
+  is_correct BOOLEAN DEFAULT FALSE,
+  FOREIGN KEY (fk_question) REFERENCES Question(id_question)
+);
+
+-- 9. Plantilla de evaluación
+CREATE TABLE Template (
+  id_template VARCHAR(10) PRIMARY KEY,
+  template_name VARCHAR(40) NOT NULL,
+  description_t VARCHAR(100),
+  num_easy_q INT NOT NULL,   -- Cantidad de preguntas fáciles
+  num_medium_q INT NOT NULL, -- Cantidad de preguntas intermedias
+  num_hard_q INT NOT NULL    -- Cantidad de preguntas difíciles
+);
+
+-- 11. Examen
+CREATE TABLE Exam (
+  id_exam VARCHAR(10) PRIMARY KEY,
+  fk_template VARCHAR(10) NOT NULL,
+  fk_user VARCHAR(10) NOT NULL,
+  application_date DATE NOT NULL,
+  attempt INT NOT NULL,
+  FOREIGN KEY (fk_template) REFERENCES Template(id_template),
+  FOREIGN KEY (fk_user) REFERENCES User_(id_user)
+);
+
+-- 12. Resultado
+CREATE TABLE Result (
+  id_result VARCHAR(15) PRIMARY KEY,
+  fk_exam VARCHAR(10) UNIQUE NOT NULL,
+  fk_achvlvl VARCHAR(15) NOT NULL,
+  total_score INT NOT NULL,
+  percentage_correct DECIMAL(5,2) NOT NULL,
+  FOREIGN KEY (fk_exam) REFERENCES Exam(id_exam),
+  FOREIGN KEY (fk_achvlvl) REFERENCES Achievement_lvl(id_achvlvl)
+);
+
+-- 13. Retroalimentación
+CREATE TABLE Feedback (
+  id_feedback VARCHAR(10) PRIMARY KEY,
+  comment VARCHAR(300)
+);
+
+-- 14. Respuesta del usuario
+CREATE TABLE Answer (
+  id_answer VARCHAR(20) PRIMARY KEY,
+  fk_exam VARCHAR(10) NOT NULL,
+  fk_question VARCHAR(10) NOT NULL,
+  fk_feedback VARCHAR(10),
+  user_response VARCHAR(100) DEFAULT '',
+  partial_score INT DEFAULT 0,
+  FOREIGN KEY (fk_exam) REFERENCES Exam(id_exam),
+  FOREIGN KEY (fk_question) REFERENCES Question(id_question),
+  FOREIGN KEY (fk_feedback) REFERENCES Feedback(id_feedback),
+  INDEX idx_answer_exam (fk_exam),  -- Índice para búsquedas por examen
+  INDEX idx_answer_question (fk_question)  -- Índice para búsquedas por pregunta
+);
+
+-- 15. Tabla temporal para la sesión (se elimina automáticamente al terminar)
+CREATE TEMPORARY TABLE IF NOT EXISTS temp_selected_questions (
+    question_id VARCHAR(10),
+    difficulty VARCHAR(10),
+    order_num INT
+);
+
